@@ -1,0 +1,16 @@
+{
+  "name": "vercel-clone",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @vercel-clone/api\" \"npm run dev -w @vercel-clone/worker\" \"npm run dev -w @vercel-clone/dashboard\"",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "typescript": "^5.4.0"
+  }
+}
