@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 export type DeploymentStatus =
   | 'queued'
   | 'building'
@@ -28,5 +30,12 @@ export interface BuildJob {
   deploymentId: string;
   projectId: string;
   repoUrl: string;
+  repoName: string;
   commitSha: string;
+  commitMessage: string;
+  branch: string;
+}
+
+export function generateDeploymentId(): string {
+  return 'dpl_' + randomUUID().replace(/-/g, '').slice(0, 8);
 }

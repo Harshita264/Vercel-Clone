@@ -1,4 +1,4 @@
-import express, { Application, NextFunction, Request, Response, nextFunction} from 'express';
+import express, { Application, NextFunction, Request, Response} from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { healthRouter } from './routes/health';

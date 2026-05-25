@@ -8,10 +8,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@vercel-clone/shared": "*"
+    "@vercel-clone/shared": "*",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.3.0",
+    "dotenv": "^16.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "ts-node-dev": "^2.0.0"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.0"
   }
 }

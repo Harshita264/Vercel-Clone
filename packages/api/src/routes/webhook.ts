@@ -1,13 +1,16 @@
+// packages/api/src/routes/webhook.ts
 import { Router, Request, Response } from 'express';
 import { verifyGithubWebhook, GithubPushPayload } from '../lib/github';
+import { enqueueBuildJob } from '../lib/queue';
+import { generateDeploymentId, BuildJob } from '@vercel-clone/shared';
 
 export const webhookRouter = Router();
 
-webhookRouter.post('/github', (req: Request, res: Response) => {
+webhookRouter.post('/github', async (req: Request, res: Response) => {
+    console.log('Webhook received');
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
 
   if (!secret) {
-    console.error('GITHUB_WEBHOOK_SECRET is not set');
     res.status(500).json({ error: 'Server misconfiguration' });
     return;
   }
@@ -27,14 +30,18 @@ webhookRouter.post('/github', (req: Request, res: Response) => {
   }
 
   const payload = req.body as GithubPushPayload;
-
   const branch = payload.ref.replace('refs/heads/', '');
+
   if (branch !== 'main' && branch !== 'master') {
     res.status(200).json({ message: `Ignoring push to branch: ${branch}` });
     return;
   }
 
-  const buildInfo = {
+  const deploymentId = generateDeploymentId();
+
+  const job: BuildJob = {
+    deploymentId,
+    projectId: String(payload.repository.id),
     repoUrl: payload.repository.clone_url,
     repoName: payload.repository.full_name,
     commitSha: payload.after,
@@ -42,10 +49,15 @@ webhookRouter.post('/github', (req: Request, res: Response) => {
     branch,
   };
 
-  console.log(`Build triggered for ${buildInfo.repoName} @ ${buildInfo.commitSha.slice(0, 7)}`);
+  await enqueueBuildJob(job);
+
+  console.log(`[${deploymentId}] Build queued for ${job.repoName} @ ${job.commitSha.slice(0, 7)}`);
 
   res.status(200).json({
     message: 'Build queued',
-    ...buildInfo,
+    deploymentId,
+    repoName: job.repoName,
+    commitSha: job.commitSha,
+    branch,
   });
 });
