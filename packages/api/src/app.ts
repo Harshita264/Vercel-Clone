@@ -1,7 +1,8 @@
-import express, { Application } from 'express';
+import express, { Application, NextFunction, Request, Response, nextFunction} from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { healthRouter } from './routes/health';
+import { webhookRouter } from './routes/webhook';``
 
 export function createApp(): Application {
     const app = express();
@@ -13,9 +14,25 @@ export function createApp(): Application {
         credentials: true,
     }));
 
-    app.use(express.json());
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        let data: Buffer[] = [];
+        req.on('data', (chunk: Buffer) => data.push(chunk));
+        req.on('end', () => {
+            const rawBody = Buffer.concat(data);
+            (req as any).rawBody = Buffer.concat(data);
 
+            if(req.headers['content-type']?.includes('application/json')) {
+                try {
+                    req.body = JSON.parse(rawBody.toString());
+                } catch (e) {
+                    req.body = {};
+                }
+            }
+            next();
+        });
+    });
     app.use('/health', healthRouter);
+    app.use('/webhook', webhookRouter);
 
     return app;
 }
