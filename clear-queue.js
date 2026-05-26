@@ -1,0 +1,1 @@
+const { Queue } = require('bullmq'); const q = new Queue('build-queue', { connection: { host: 'localhost', port: 6379 } }); q.obliterate({ force: true }).then(() => { console.log('Queue cleared'); process.exit(0); });

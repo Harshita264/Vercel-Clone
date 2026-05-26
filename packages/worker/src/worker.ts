@@ -1,6 +1,8 @@
-// packages/worker/src/worker.ts
 import { Worker, Job } from 'bullmq';
 import { BuildJob, QUEUE_NAME, redisConnection } from '@vercel-clone/shared';
+import { cloneRepo } from './lib/clone';
+import { buildAndRunContainer } from './lib/docker';
+import { cleanupBuildDir } from './lib/cleanup';
 
 export function createBuildWorker() {
   const worker = new Worker<BuildJob>(
@@ -8,22 +10,58 @@ export function createBuildWorker() {
     async (job: Job<BuildJob>) => {
       const { deploymentId, repoName, commitSha, repoUrl } = job.data;
 
-      console.log(`[${deploymentId}] Starting build for ${repoName} @ ${commitSha.slice(0, 7)}`);
+      const onLog = (line: string) => {
+        console.log(`[${deploymentId}] ${line}`);
+      };
 
+      let buildDir: string | null = null;
 
-      await job.updateProgress(10);
-      console.log(`[${deploymentId}] Cloning ${repoUrl}...`);
+      try {
+        onLog(`=== Build started for ${repoName} @ ${commitSha.slice(0,7)} ===`);
 
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      await job.updateProgress(100);
+        await job.updateProgress(10);
+        const { buildDir: dir } = await cloneRepo(
+          repoUrl,
+          commitSha,
+          deploymentId,
+          onLog
+        );
+        buildDir = dir;
 
-      console.log(`[${deploymentId}] Build complete!`);
+        await job.updateProgress(40);
+        const { port, containerId } = await buildAndRunContainer(
+          buildDir,
+          deploymentId,
+          onLog
+        );
 
-      return { deploymentId, status: 'ready' };
+        await job.updateProgress(90);
+
+        const url = `http://localhost:${port}`;
+        onLog(`=== Deployment ready at ${url} ===`);
+
+        await job.updateProgress(100);
+
+        return {
+          deploymentId,
+          status: 'ready',
+          port,
+          containerId,
+          url,
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        onLog(`===Build failed: ${message} ===`);
+        throw err;
+      } finally {
+        if (buildDir) {
+          await cleanupBuildDir(buildDir);
+        }
+      }
     },
     {
       connection: redisConnection,
-      concurrency: 3, 
+      concurrency: 3,
     }
   );
 
@@ -33,10 +71,6 @@ export function createBuildWorker() {
 
   worker.on('failed', (job, err) => {
     console.error(`[${job?.data.deploymentId}] Job failed:`, err.message);
-  });
-
-  worker.on('progress', (job, progress) => {
-    console.log(`[${job.data.deploymentId}] Progress: ${progress}%`);
   });
 
   return worker;
