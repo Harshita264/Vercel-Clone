@@ -1,13 +1,11 @@
-// packages/api/src/routes/webhook.ts
 import { Router, Request, Response } from 'express';
 import { verifyGithubWebhook, GithubPushPayload } from '../lib/github';
 import { enqueueBuildJob } from '../lib/queue';
-import { generateDeploymentId, BuildJob } from '@vercel-clone/shared';
+import { findOrCreateProject, createDeployment } from '../services/deployments';
 
 export const webhookRouter = Router();
 
 webhookRouter.post('/github', async (req: Request, res: Response) => {
-    console.log('Webhook received');
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
 
   if (!secret) {
@@ -37,27 +35,35 @@ webhookRouter.post('/github', async (req: Request, res: Response) => {
     return;
   }
 
-  const deploymentId = generateDeploymentId();
+  const project = await findOrCreateProject(
+    payload.repository.full_name,
+    payload.repository.clone_url
+  );
 
-  const job: BuildJob = {
-    deploymentId,
-    projectId: String(payload.repository.id),
+  const deployment = await createDeployment({
+    projectId: project.id,
+    commitSha: payload.after,
+    commitMessage: payload.head_commit?.message || 'No message',
+    branch,
+  });
+
+  await enqueueBuildJob({
+    deploymentId: deployment.id,
+    projectId: project.id,
     repoUrl: payload.repository.clone_url,
     repoName: payload.repository.full_name,
     commitSha: payload.after,
     commitMessage: payload.head_commit?.message || 'No message',
     branch,
-  };
+  })
 
-  await enqueueBuildJob(job);
-
-  console.log(`[${deploymentId}] Build queued for ${job.repoName} @ ${job.commitSha.slice(0, 7)}`);
+  console.log(`[${deployment.id}] Build queued for ${project.repoName} @ ${payload.after.slice(0, 7)}`);
 
   res.status(200).json({
     message: 'Build queued',
-    deploymentId,
-    repoName: job.repoName,
-    commitSha: job.commitSha,
+    deploymentId: deployment.id,
+    repoName: project.repoName,
+    commitSha: payload.after,
     branch,
   });
 });

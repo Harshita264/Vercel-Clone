@@ -1,0 +1,46 @@
+// packages/api/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  repoUrl     String
+  repoName    String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deployments Deployment[]
+}
+
+model Deployment {
+  id            String           @id @default(cuid())
+  projectId     String
+  commitSha     String
+  commitMessage String
+  branch        String
+  status        DeploymentStatus @default(QUEUED)
+  url           String?
+  port          Int?
+  containerId   String?
+  buildLogs     String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  project       Project          @relation(fields: [projectId], references: [id])
+}
+
+enum DeploymentStatus {
+  QUEUED
+  BUILDING
+  DEPLOYING
+  READY
+  FAILED
+}

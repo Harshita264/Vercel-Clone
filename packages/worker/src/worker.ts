@@ -1,8 +1,24 @@
 import { Worker, Job } from 'bullmq';
 import { BuildJob, QUEUE_NAME, redisConnection } from '@vercel-clone/shared';
+import { PrismaClient, DeploymentStatus } from '@prisma/client';
 import { cloneRepo } from './lib/clone';
 import { buildAndRunContainer } from './lib/docker';
-import { cleanupBuildDir } from './lib/cleanup';
+import { cleanupBuildDir, stopAndRemoveContainer } from './lib/cleanup';
+import { addDeploymentRoute } from './lib/caddy';
+
+const prisma = new PrismaClient();
+const BASE_DOMAIN = process.env.BASE_DOMAIN || 'localhost';
+
+async function updateStatus(
+  id: string,
+  status: DeploymentStatus,
+  extras?: { url?: string; port?: number; containerId?: string }
+) {
+  await prisma.deployment.update({
+    where: { id },
+    data: { status, ...extras },
+  });
+}
 
 export function createBuildWorker() {
   const worker = new Worker<BuildJob>(
@@ -12,51 +28,47 @@ export function createBuildWorker() {
 
       const onLog = (line: string) => {
         console.log(`[${deploymentId}] ${line}`);
+        job.log(line);
       };
 
       let buildDir: string | null = null;
 
       try {
-        onLog(`=== Build started for ${repoName} @ ${commitSha.slice(0,7)} ===`);
+        await stopAndRemoveContainer(deploymentId);
+
+        await updateStatus(deploymentId, DeploymentStatus.BUILDING);
+        onLog(`=== Build started for ${repoName} @ ${commitSha.slice(0, 7)} ===`);
 
         await job.updateProgress(10);
-        const { buildDir: dir } = await cloneRepo(
-          repoUrl,
-          commitSha,
-          deploymentId,
-          onLog
-        );
+        const { buildDir: dir } = await cloneRepo(repoUrl, commitSha, deploymentId, onLog);
         buildDir = dir;
 
         await job.updateProgress(40);
-        const { port, containerId } = await buildAndRunContainer(
-          buildDir,
-          deploymentId,
-          onLog
-        );
+        await updateStatus(deploymentId, DeploymentStatus.DEPLOYING);
 
-        await job.updateProgress(90);
+        const { port, containerId } = await buildAndRunContainer(buildDir, deploymentId, onLog);
 
-        const url = `http://localhost:${port}`;
-        onLog(`=== Deployment ready at ${url} ===`);
+        onLog(`Registering route with reverse proxy...`);
+        await addDeploymentRoute(deploymentId, port);
+
+        const url = `http://${deploymentId}.${BASE_DOMAIN}`;
+
+        await updateStatus(deploymentId, DeploymentStatus.READY, { url, port, containerId });
 
         await job.updateProgress(100);
+        onLog(`=== Deployment ready at ${url} ===`);
 
-        return {
-          deploymentId,
-          status: 'ready',
-          port,
-          containerId,
-          url,
-        };
+        return { deploymentId, status: 'ready', port, url };
+
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        onLog(`===Build failed: ${message} ===`);
+        onLog(`=== Build failed: ${message} ===`);
+        await updateStatus(deploymentId, DeploymentStatus.FAILED);
         throw err;
+
       } finally {
-        if (buildDir) {
-          await cleanupBuildDir(buildDir);
-        }
+        if (buildDir) await cleanupBuildDir(buildDir);
+        await prisma.$disconnect();
       }
     },
     {
@@ -65,13 +77,8 @@ export function createBuildWorker() {
     }
   );
 
-  worker.on('completed', (job) => {
-    console.log(`[${job.data.deploymentId}] Job completed`);
-  });
-
-  worker.on('failed', (job, err) => {
-    console.error(`[${job?.data.deploymentId}] Job failed:`, err.message);
-  });
+  worker.on('completed', (job) => console.log(`[${job.data.deploymentId}] ✓ Job completed`));
+  worker.on('failed', (job, err) => console.error(`[${job?.data.deploymentId}] ✗ Job failed:`, err.message));
 
   return worker;
 }

@@ -8,13 +8,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "@vercel-clone/shared": "*",
     "bullmq": "^5.77.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "helmet": "^8.2.0",
-    "ioredis": "^5.10.1"
+    "ioredis": "^5.10.1",
+    "prisma": "^5.22.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

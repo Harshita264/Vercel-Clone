@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { healthRouter } from './routes/health';
 import { webhookRouter } from './routes/webhook';``
+import { deploymentsRouter } from './routes/deployments';
 
 export function createApp(): Application {
     const app = express();
@@ -33,6 +34,7 @@ export function createApp(): Application {
     });
     app.use('/health', healthRouter);
     app.use('/webhook', webhookRouter);
-
+    app.use('/deployments', deploymentsRouter);
+    
     return app;
 }

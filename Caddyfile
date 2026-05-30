@@ -1,0 +1,10 @@
+{
+  admin localhost:2019 {
+    origins localhost:2019 localhost:3001
+  }
+  auto_https off
+}
+
+:80 {
+  respond "Caddy is running" 200
+}
