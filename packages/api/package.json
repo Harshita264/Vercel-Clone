@@ -16,7 +16,8 @@
     "express": "^5.2.1",
     "helmet": "^8.2.0",
     "ioredis": "^5.10.1",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "redis": "^6.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

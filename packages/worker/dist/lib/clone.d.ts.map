@@ -1,0 +1,1 @@
+{"version":3,"file":"clone.d.ts","sourceRoot":"","sources":["../../src/lib/clone.ts"],"names":[],"mappings":"AAKA,MAAM,WAAW,WAAW;IACxB,QAAQ,EAAE,MAAM,CAAC;CACpB;AAED,wBAAsB,SAAS,CAC3B,OAAO,EAAE,MAAM,EACf,SAAS,EAAE,MAAM,EACjB,YAAY,EAAE,MAAM,EACpB,KAAK,EAAE,CAAC,IAAI,EAAE,MAAM,KAAK,IAAI,GAC9B,OAAO,CAAC,WAAW,CAAC,CAyBtB"}

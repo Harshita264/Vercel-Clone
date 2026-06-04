@@ -32,7 +32,7 @@ export async function updateDeploymentStatus(
         buildLogs?: string;
     }
 ) {
-    return prisma.deployment.updates({
+    return prisma.deployment.update({
         where: { id },
         data: { status, ...extras },
     });

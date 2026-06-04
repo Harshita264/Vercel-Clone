@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { BuildJob, QUEUE_NAME, redisConnection } from '@vercel-clone/shared';
 import { PrismaClient, DeploymentStatus } from '@prisma/client';
+import { createClient } from 'redis';
 import { cloneRepo } from './lib/clone';
 import { buildAndRunContainer } from './lib/docker';
 import { cleanupBuildDir, stopAndRemoveContainer } from './lib/cleanup';
@@ -26,10 +27,23 @@ export function createBuildWorker() {
     async (job: Job<BuildJob>) => {
       const { deploymentId, repoName, commitSha, repoUrl } = job.data;
 
-      const onLog = (line: string) => {
-        console.log(`[${deploymentId}] ${line}`);
-        job.log(line);
-      };
+      const publisher = createClient({
+        url: process.env.REDIS_URL || 'redis://localhost:6379',
+      });
+      await publisher.connect();
+
+      const onLog = async (line: string) => {
+  console.log(`[${deploymentId}] ${line}`);
+  job.log(line);
+  await publisher.publish(`logs:${deploymentId}`, line);
+
+  // Append line to buildLogs column
+  await prisma.$executeRaw`
+    UPDATE "Deployment" 
+    SET "buildLogs" = COALESCE("buildLogs", '') || ${line + '\n'}
+    WHERE id = ${deploymentId}
+  `;
+};
 
       let buildDir: string | null = null;
 
@@ -37,7 +51,7 @@ export function createBuildWorker() {
         await stopAndRemoveContainer(deploymentId);
 
         await updateStatus(deploymentId, DeploymentStatus.BUILDING);
-        onLog(`=== Build started for ${repoName} @ ${commitSha.slice(0, 7)} ===`);
+        await onLog(`=== Build started for ${repoName} @ ${commitSha.slice(0, 7)} ===`);
 
         await job.updateProgress(10);
         const { buildDir: dir } = await cloneRepo(repoUrl, commitSha, deploymentId, onLog);
@@ -48,26 +62,26 @@ export function createBuildWorker() {
 
         const { port, containerId } = await buildAndRunContainer(buildDir, deploymentId, onLog);
 
-        onLog(`Registering route with reverse proxy...`);
+        await onLog(`Registering route with reverse proxy...`);
         await addDeploymentRoute(deploymentId, port);
 
         const url = `http://${deploymentId}.${BASE_DOMAIN}`;
-
         await updateStatus(deploymentId, DeploymentStatus.READY, { url, port, containerId });
 
         await job.updateProgress(100);
-        onLog(`=== Deployment ready at ${url} ===`);
+        await onLog(`=== Deployment ready at ${url} ===`);
 
         return { deploymentId, status: 'ready', port, url };
 
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        onLog(`=== Build failed: ${message} ===`);
+        await onLog(`=== Build failed: ${message} ===`);
         await updateStatus(deploymentId, DeploymentStatus.FAILED);
         throw err;
 
       } finally {
         if (buildDir) await cleanupBuildDir(buildDir);
+        await publisher.disconnect();
         await prisma.$disconnect();
       }
     },
