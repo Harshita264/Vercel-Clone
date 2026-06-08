@@ -1,0 +1,57 @@
+{
+  "apps": {
+    "http": {
+      "servers": {
+        "srv0": {
+          "listen": [
+            ":80"
+          ],
+          "routes": [
+            {
+              "@id": "deployment-cmps88n9b0005qr8ceafv07ts",
+              "match": [
+                {
+                  "host": [
+                    "cmps88n9b0005qr8ceafv07ts.localhost"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "localhost:65448"
+                    }
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "@id": "deployment-cmpzej9dn0002iz24heebjt11",
+              "match": [
+                {
+                  "host": [
+                    "cmpzej9dn0002iz24heebjt11.localhost"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "reverse_proxy",
+                  "upstreams": [
+                    {
+                      "dial": "localhost:56155"
+                    }
+                  ]
+                }
+              ],
+              "terminal": true
+            }
+          ]
+        }
+      }
+    }
+  }
+}
