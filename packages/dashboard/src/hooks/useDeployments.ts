@@ -1,4 +1,3 @@
-// packages/dashboard/src/hooks/useDeployments.ts
 import { useQuery } from '@tanstack/react-query';
 import { getDeployment, getProjectDeployments } from '../lib/api';
 
@@ -21,6 +20,10 @@ export function useProjectDeployments(repo: string) {
   return useQuery({
     queryKey: ['deployments', repo],
     queryFn: () => getProjectDeployments(repo),
-    refetchInterval: 5000,
+    enabled: !!repo,  //only fetch when repo is not empty
+    refetchInterval: (query) => {
+      if (!repo) return false;
+      return 5000;
+    },
   });
 }

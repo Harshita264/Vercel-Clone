@@ -31,11 +31,9 @@ export function ProjectsPage() {
         </button>
       </div>
 
-      {isLoading && (
-        <p className="text-gray-400">Loading...</p>
-      )}
+      {activeRepo && isLoading && <p className="text-gray-400">Loading...</p>}
 
-      {deployments && deployments.length === 0 && (
+      {activeRepo && deployments && deployments.length === 0 && (
         <p className="text-gray-500">No deployments found for {activeRepo}</p>
       )}
 

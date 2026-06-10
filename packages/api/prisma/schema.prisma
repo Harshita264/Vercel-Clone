@@ -13,10 +13,13 @@ model Project {
   name        String
   repoUrl     String
   repoName    String   @unique
+  userId      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  user        User?         @relation(fields: [userId], references: [id])
   deployments Deployment[]
+  envVars     EnvVar[]
 }
 
 model Deployment {
@@ -34,6 +37,31 @@ model Deployment {
   updatedAt     DateTime         @updatedAt
 
   project       Project          @relation(fields: [projectId], references: [id])
+}
+
+model User {
+  id          String   @id @default(cuid())
+  githubId    String   @unique
+  username    String
+  email       String?
+  avatarUrl   String?
+  accessToken String   // GitHub OAuth token — encrypted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  projects    Project[]
+}
+
+model EnvVar {
+  id        String   @id @default(cuid())
+  projectId String
+  key       String
+  value     String   // AES-256-GCM encrypted
+  createdAt DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, key])
 }
 
 enum DeploymentStatus {

@@ -30,12 +30,15 @@ export function createBuildWorker() {
       // declare logLines FIRST
       const logLines: string[] = [];
 
-      // onLog collects every line
       const onLog = async (line: string) => {
-        console.log(`[${deploymentId}] ${line}`);
-        job.log(line);
-        logLines.push(line);
-        await publishLog(deploymentId, line);
+      console.log(`[${deploymentId}] ${line}`);
+      try {
+      await job.log(line); // wrapped in try-catch so it never crashes the build
+      } catch {
+        // job may have been removed from Redis — ignore
+      }
+      logLines.push(line);
+      await publishLog(deploymentId, line);
       };
 
       let buildDir: string | null = null;
@@ -54,6 +57,7 @@ export function createBuildWorker() {
         const { port, containerId } = await buildAndRunContainer(
           buildDir,
           deploymentId,
+          job.data.projectId,
           onLog
         );
 

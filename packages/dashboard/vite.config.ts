@@ -6,9 +6,29 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/deployments': 'http://localhost:3001',
-      '/webhook': 'http://localhost:3001',
-      '/health': 'http://localhost:3001',
+      '/deployments': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        cookieDomainRewrite: 'localhost',
+      },
+      '/auth': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        cookieDomainRewrite: 'localhost',
+      },
+      '/projects': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        cookieDomainRewrite: 'localhost',
+      },
+      '/webhook': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
     },
   },
 });

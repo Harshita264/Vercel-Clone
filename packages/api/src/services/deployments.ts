@@ -50,5 +50,6 @@ export async function getProjectDeployments(repoName: string) {
         where: { project: { repoName } },
         orderBy: { createdAt: 'desc' },
         take: 20,
+        include: {project: true },
     });
 }
