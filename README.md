@@ -13,13 +13,13 @@ A self-hosted deployment platform built from scratch. Push code to GitHub — it
 - **GitHub OAuth** — login with GitHub, JWT session via localStorage
 - **Encrypted Environment Variables** — per-project env vars stored with AES-256-GCM encryption, injected into containers at runtime
 
-  <img width="1919" height="828" alt="Screenshot 2026-06-11 124658" src="https://github.com/user-attachments/assets/b1f41abe-1125-46b0-856f-2c7eed5527d9" />
+<img width="1919" height="828" alt="Screenshot 2026-06-11 124658" src="https://github.com/user-attachments/assets/b1f41abe-1125-46b0-856f-2c7eed5527d9" />
 
-  <img width="1919" height="830" alt="Screenshot 2026-06-11 124742" src="https://github.com/user-attachments/assets/fe72ac6d-55d5-4852-92ee-a29e7e5416a8" />
+<img width="1919" height="828" alt="Screenshot 2026-06-11 124742" src="https://github.com/user-attachments/assets/fe72ac6d-55d5-4852-92ee-a29e7e5416a8" />
 
-<img width="1915" height="818" alt="Screenshot 2026-06-11 125137" src="https://github.com/user-attachments/assets/29531140-457f-4bb8-a42d-a2adbc703119" />
+<img width="1919" height="828" alt="Screenshot 2026-06-11 125137" src="https://github.com/user-attachments/assets/29531140-457f-4bb8-a42d-a2adbc703119" />
 
-<img width="1918" height="831" alt="Screenshot 2026-06-11 130408" src="https://github.com/user-attachments/assets/30b6afe2-3634-42e9-9f28-1fb4abb852a6" />
+<img width="1919" height="828" alt="Screenshot 2026-06-11 130408" src="https://github.com/user-attachments/assets/30b6afe2-3634-42e9-9f28-1fb4abb852a6" />
 
 
 ## Architecture
